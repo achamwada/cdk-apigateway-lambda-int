@@ -54,7 +54,6 @@ export const json404Response = `#set ($response = $util.parseJson($input.path('$
 export const json500Response = `#set ($response = $util.parseJson($input.path('$.errorMessage')))
 {
   "statusCode" : $response.statusCode,
-  "contentKey" : "$response.contentKey",
   "message" : "$response.body",
   "correlationId" : "$response.awsRequestId"
 }`
