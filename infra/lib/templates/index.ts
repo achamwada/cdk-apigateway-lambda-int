@@ -43,7 +43,15 @@ export const jsonRequest = `##  See http://docs.aws.amazon.com/apigateway/latest
     }
 }`
 
-export const jsonResponse = `#set ($response = $util.parseJson($input.path('$.errorMessage')))
+export const json404Response = `#set ($response = $util.parseJson($input.path('$.errorMessage')))
+{
+  "statusCode" : $response.statusCode,
+  "contentKey" : "$response.contentKey",
+  "message" : "$response.body",
+  "correlationId" : "$response.awsRequestId"
+}`
+
+export const json500Response = `#set ($response = $util.parseJson($input.path('$.errorMessage')))
 {
   "statusCode" : $response.statusCode,
   "contentKey" : "$response.contentKey",

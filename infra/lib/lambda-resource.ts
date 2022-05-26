@@ -1,15 +1,15 @@
 
 import { Stack, StackProps } from "aws-cdk-lib";
-import { RestApi, PassthroughBehavior, Model, LambdaIntegration } from "aws-cdk-lib/aws-apigateway"
+import { RestApi, PassthroughBehavior, Model, LambdaIntegration, RequestValidator } from "aws-cdk-lib/aws-apigateway"
 import { Architecture, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
 import { contentNotFoundSchema, internalServerErrorSchema } from "./schemas";
 
-import { jsonRequest, jsonResponse } from "./templates";
+import { json404Response, json500Response, jsonRequest } from "./templates";
 
 interface LambdaResourceProps extends StackProps {
-    restApiId: string,
-    rootResourceId: string
+    restApiId: string, // /dx/infra/api-gw/dev1-blue/rest-api-id
+    rootResourceId: string // /dx/infra/api-gw/dev1-blue/root-resource-id
 }
 
 export class LambdaResource extends Stack {
@@ -27,9 +27,9 @@ export class LambdaResource extends Stack {
             rootResourceId: props.rootResourceId
 
         })
-        const v1 = api.root.addResource('v1')
+        const v2 = api.root.addResource('v2')
 
-        const content = v1.addResource('content');
+        const content = v2.addResource('content');
 
         const integration = new LambdaIntegration(contentLambda, {
             proxy: false,
@@ -37,13 +37,25 @@ export class LambdaResource extends Stack {
             requestTemplates: {
                 "application/json": jsonRequest
             },
-            integrationResponses: [{
-                statusCode: "404",
-                selectionPattern: ".*Content not found.*",
-                responseTemplates: {
-                    "application/json": jsonResponse
-                }
-            }]
+            integrationResponses: [
+                {
+                    statusCode: "200",
+
+                },
+                {
+                    statusCode: "404",
+                    selectionPattern: ".*Content not found.*",
+                    responseTemplates: {
+                        "application/json": json404Response
+                    }
+                },
+                {
+                    statusCode: "500",
+                    selectionPattern: ".*Server Error.*",
+                    responseTemplates: {
+                        "application/json": json500Response
+                    }
+                }]
         })
 
 
@@ -64,22 +76,31 @@ export class LambdaResource extends Stack {
         })
         content.addMethod('GET', integration, {
             apiKeyRequired: false,
-            methodResponses: [{
-                statusCode: "404",
-                responseModels: {
-                    "application/json": responseModel404
+            methodResponses: [
+                {
+                    statusCode: "200"
+                },
+                {
+                    statusCode: "404",
+                    responseModels: {
+                        "application/json": responseModel404
+                    }
+                },
+                {
+                    statusCode: "500",
+                    responseModels: {
+                        "application/json": responseModel500
+                    }
                 }
-            },
-            {
-                statusCode: "500",
-                responseModels: {
-                    "application/json": responseModel500
-                }
-            }
             ],
             requestParameters: {
                 "method.request.querystring.contentKey": true
-            }
+            },
+            requestValidator: new RequestValidator(this, "QueryRequestValidator", {
+                restApi: api,
+                requestValidatorName: "ContentQueryParamValidator",
+                validateRequestParameters: true,
+            })
         });
 
 
