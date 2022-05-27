@@ -18,8 +18,8 @@ new LambdaResource(app, 'InfraStack', {
   // env: { account: '123456789012', region: 'us-east-1' },
 
   /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
-  restApiId: "weewrp7c8c",
-  rootResourceId: "cad59hcz24",
+  restApiIdSsmPath: "/dx/infra/api-gw/dev1-blue/rest-api-id",
+  rootResourceIdSsPath: "/dx/infra/api-gw/dev1-blue/root-resource-id",
   env: {
     account: "927362808381",
     region: "eu-west-1"

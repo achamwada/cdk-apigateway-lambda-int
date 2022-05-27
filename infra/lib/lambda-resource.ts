@@ -2,19 +2,23 @@
 import { Stack, StackProps } from "aws-cdk-lib";
 import { RestApi, PassthroughBehavior, Model, LambdaIntegration, RequestValidator } from "aws-cdk-lib/aws-apigateway"
 import { Architecture, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
+import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { Construct } from "constructs";
 import { contentNotFoundSchema, internalServerErrorSchema } from "./schemas";
 
 import { json404Response, json500Response, jsonRequest } from "./templates";
 
 interface LambdaResourceProps extends StackProps {
-    restApiId: string, // /dx/infra/api-gw/dev1-blue/rest-api-id
-    rootResourceId: string // /dx/infra/api-gw/dev1-blue/root-resource-id
+    restApiIdSsmPath: string,
+    rootResourceIdSsPath: string
 }
 
 export class LambdaResource extends Stack {
     constructor(scope: Construct, id: string, props: LambdaResourceProps) {
         super(scope, id, props)
+
+        const restApiId = StringParameter.valueForStringParameter(this, props.restApiIdSsmPath)
+        const rootResourceId = StringParameter.valueForStringParameter(this, props.rootResourceIdSsPath)
 
         const contentLambda = new Function(this, "ContentLambda", {
             code: Code.fromAsset("../code"),
@@ -23,8 +27,8 @@ export class LambdaResource extends Stack {
             architecture: Architecture.X86_64,
         })
         const api = RestApi.fromRestApiAttributes(this, "ImportedAPI", {
-            restApiId: props.restApiId,
-            rootResourceId: props.rootResourceId
+            restApiId,
+            rootResourceId
 
         })
         const v2 = api.root.addResource('v2')
@@ -63,7 +67,7 @@ export class LambdaResource extends Stack {
             restApi: api,
             schema: contentNotFoundSchema,
             contentType: "application/json",
-            description: "Model when a 404 response is encountered from lambda",
+            description: "Model when a 404 response is received from lambda",
             modelName: "ContentNotFoundModel"
         })
 
