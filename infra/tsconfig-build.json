@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+      "target": "esnext",
+      "module": "esnext",
+      "lib": ["esnext"],
+      "moduleResolution": "node",
+      "resolveJsonModule": true,
+      "strict": true,
+      "skipLibCheck": true,
+      "esModuleInterop": true,
+      "allowSyntheticDefaultImports": true,
+      "rootDirs": ["src"],
+      "outDir": "out"
+    },
+    "exclude": ["config", "**/*.test.ts", "bin", "lib"]
+  }

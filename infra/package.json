@@ -5,7 +5,9 @@
     "infra": "bin/infra.js"
   },
   "scripts": {
-    "build": "tsc",
+    "prebuild": "rm -rf out",
+    "build": "yarn && tsc --project tsconfig-build.json",
+    "postbuild": "mkdir -p out/bin out/lib && cp -r bin/* out/bin && cp -r lib/* out/lib && cp cdk.json out/cdk.json && cp cdk.context.json out/cdk.context.json && cp package.json out/package.json && cp yarn.lock out/yarn.lock && cd out && yarn install --frozen-lockfile",
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk"
@@ -16,11 +18,11 @@
     "@types/prettier": "2.6.0",
     "jest": "^27.5.1",
     "ts-jest": "^27.1.4",
-    "aws-cdk": "2.25.0",
     "ts-node": "^10.7.0",
     "typescript": "~3.9.7"
   },
   "dependencies": {
+    "aws-cdk": "2.25.0",
     "aws-cdk-lib": "2.25.0",
     "constructs": "^10.0.0",
     "source-map-support": "^0.5.21"

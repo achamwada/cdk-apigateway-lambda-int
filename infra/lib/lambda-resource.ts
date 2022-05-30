@@ -21,7 +21,7 @@ export class LambdaResource extends Stack {
         const rootResourceId = StringParameter.valueForStringParameter(this, props.rootResourceIdSsPath)
 
         const contentLambda = new Function(this, "ContentLambda", {
-            code: Code.fromAsset("../code"),
+            code: Code.fromAsset("./src"),
             handler: "index.handler",
             runtime: Runtime.NODEJS_16_X,
             architecture: Architecture.X86_64,
