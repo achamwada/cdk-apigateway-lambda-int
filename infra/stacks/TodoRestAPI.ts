@@ -1,14 +1,17 @@
-import { RestApi, LambdaIntegration, PassthroughBehavior, Model, RequestValidator, IRestApi, Resource } from "aws-cdk-lib/aws-apigateway"
+import { RestApi, LambdaIntegration, PassthroughBehavior, Model, RequestValidator, IRestApi, Resource, Deployment, Stage, LogGroupLogDestination, AccessLogFormat, Method } from "aws-cdk-lib/aws-apigateway"
 import { Code, Runtime, Architecture, Function } from "aws-cdk-lib/aws-lambda"
 import { StringParameter } from "aws-cdk-lib/aws-ssm"
 import { Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs"
 import { contentNotFoundSchema, internalServerErrorSchema } from "../utils/schemas"
 import { jsonRequest, json404Response, json500Response } from "../utils/templates"
+import { LogGroup } from "aws-cdk-lib/aws-logs";
+import { name as API_NAME } from '../package.json'
 
-interface RestAPIProps extends StackProps {
+interface TodoRestAPIProps extends StackProps {
     restApiIdSsmPath: string,
     rootResourceIdSsPath: string
+    deploymentStage: string
 }
 
 interface ResponseModels {
@@ -16,13 +19,16 @@ interface ResponseModels {
     _500: Model
 }
 
-export class RestAPI extends Stack {
-    private api: IRestApi
-    constructor(scope: Construct, id: string, props: RestAPIProps) {
+export class TodoRestAPI extends Stack {
+    public api: IRestApi
+    private methods: Method[] = []
+    public API_URL: string
+    constructor(scope: Construct, id: string, props: TodoRestAPIProps) {
         super(scope, id, props)
         this.lookupExistingAPI(props.restApiIdSsmPath, props.rootResourceIdSsPath)
         const resource = this.addNewResource()
         this.attachGetMethodToEndpoint(resource)
+        this.deployAPI(props.deploymentStage)
 
     }
 
@@ -33,7 +39,7 @@ export class RestAPI extends Stack {
         this.api = RestApi.fromRestApiAttributes(this, "ImportedAPI", {
             restApiId,
             rootResourceId
-        })
+        }) as RestApi
 
     }
 
@@ -47,8 +53,8 @@ export class RestAPI extends Stack {
         const { _404, _500 } = this.generateResponseModels()
         const integration = this.createRequestIntegration()
 
-        endpoint.addMethod('GET', integration, {
-            apiKeyRequired: false,
+        const getMethod = endpoint.addMethod('GET', integration, {
+            apiKeyRequired: true,
             methodResponses: [
                 {
                     statusCode: "200"
@@ -76,6 +82,8 @@ export class RestAPI extends Stack {
             })
         });
 
+        this.methods.push(getMethod)
+
     }
 
     private generateResponseModels(): ResponseModels {
@@ -102,7 +110,6 @@ export class RestAPI extends Stack {
             _500: responseModel500
         }
     }
-
 
     private createRequestIntegration(): LambdaIntegration {
         const todoLambda = new Function(this, "TodosLambda", {
@@ -138,5 +145,41 @@ export class RestAPI extends Stack {
                     }
                 }]
         })
+    }
+
+    private deployAPI(stageName: string): void {
+        const deployment = new Deployment(this, "Deployment", {
+            api: this.api,
+            description: "Publishing API changes",
+            retainDeployments: false,
+        })
+
+
+        const logGroup = new LogGroup(this, `${API_NAME}${stageName}Logs`);
+        new Stage(this, `${stageName}Stage`, {
+            stageName: stageName,
+            deployment,
+            accessLogDestination: new LogGroupLogDestination(logGroup),
+            accessLogFormat: AccessLogFormat.jsonWithStandardFields({
+                caller: false,
+                httpMethod: true,
+                ip: true,
+                protocol: true,
+                requestTime: true,
+                resourcePath: true,
+                responseLength: true,
+                status: true,
+                user: true
+            })
+        });
+
+        this.methods.forEach(method => {
+            deployment.node.addDependency(method)
+        })
+
+        deployment.addToLogicalId(Date.now())
+
+
+
     }
 }

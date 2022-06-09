@@ -26,7 +26,7 @@ exports.handler = async (event, context) => {
             completed: true
         }]
     const { awsRequestId } = context
-    const contentKey = event.params.querystring.contentKey
+    const contentKey = event.params.querystring.todoKey
     if (contentKey === 'test404') {
         statusCode = 404
         body = 'Content not found'
