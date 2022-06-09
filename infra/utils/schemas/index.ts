@@ -1,4 +1,4 @@
-import { JsonSchema, JsonSchemaVersion, JsonSchemaType, Model } from "aws-cdk-lib/aws-apigateway"
+import { JsonSchema, JsonSchemaVersion, JsonSchemaType } from "aws-cdk-lib/aws-apigateway"
 
 export const contentNotFoundSchema: JsonSchema = {
     title: "ContentNotFoundModel",
